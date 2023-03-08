@@ -1,12 +1,14 @@
 #include <iostream>
 #include <thread>
-#include <list>
+#include <vector>
+#include <algorithm>
 
 int main() {
-    std::list<int> l;
-    l.push_back(5);
-    l.push_back(4);
-    l.push_back(3);
+    std::vector<int> vect;
+    vect.push_back(3);
+    vect.push_back(2);
+    vect.push_back(1);
 
-    std::cout<<l[2]<<std::endl;
+    std::cout<<vect[0]<<std::endl;
+
 };

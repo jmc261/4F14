@@ -1,14 +1,15 @@
 #include <iostream>
 #include <thread>
-#include <list>
+#include <vector>
 #include <utility> // Includes std::pair
 #include <mutex>
-
+#include <tuple>
+#include <chrono>
 
 struct Queue {
     public:
         // The queue itself - a list of pairs
-        std::list<std::pair<std::string, int>> queue;
+        std::vector<std::pair<std::string, int>> queue;
 
         // Set up mutex
         std::mutex m;
@@ -25,7 +26,7 @@ struct Queue {
             std::pair<std::string, int> removed = queue.front();
 
             // Removes the first element
-            queue.pop_front();
+            queue.erase(queue.begin());
 
             // Returns the removed element
             return removed;
@@ -51,39 +52,119 @@ struct Queue {
 
                 add(std::make_pair(temp_str, temp_int)); // Add the pair to the list
 
-                std::cout<<"temp_str: "<<temp_str<<", temp_int: "<<temp_int<<std::endl; //Just for checking
+                //std::cout<<"temp_str: "<<temp_str<<", temp_int: "<<temp_int<<std::endl; //Just for checking
 
             };
         };
-
+        
         // Function used in 'reverse' to swap two numbers
         void lock_and_swap (int index) {
             // Lock the queue while swap occurs
             std::lock_guard<std::mutex> guard(m);
+
             int max_index = queue.size()/2; // int acts as a floor function
-            bool reversed = false; // Used to decide when to sum
 
             // Need to recheck since list could have been altered since while in 'reverse'
             if (index < max_index) {
-                // SWAP
+                // Swap
+                std::iter_swap(queue.begin() + index, queue.begin() + (queue.size()-1) - index);
             }
-            else if (queue.size == 0) {
+            else if (queue.size() == 0) {
                 ; // Pass
             }
             else {
-                // SUM
+                // Sum if index >= max_index
+                int sum = 0;
+                for (std::pair<std::string, int> item : queue) {
+                    sum += item.second;
+                };
+                // Print the sum
+                std::cout<<"(c) - Sum of reversed integers: "<<sum<<std::endl;
             }
         };
 
         // Reverse the list
-        void reverse () {
+        void reverse_c () {
             while (queue.size() > 0) {
+            //for (int j = 0; j<4; j++){ for testing
                 int i = 0;
-                while (i < queue.size()/2 + 1) {
+                int len_q = queue.size()/2;
+                while (i < len_q + 1) {
                     lock_and_swap(i);
+                    i++;
                 };
             };
         };
+
+
+        // Updates k if needed and returns the new pair
+        std::tuple<int, std::pair<std::string, int>> get_item (int k) {
+            // Lock the vector
+            std::lock_guard<std::mutex> guard(m);
+
+            // If deletion occurs between while loop and get_item call, exit function
+            if (queue.size() == 0) {
+                return std::make_tuple(-1, std::make_pair(" ", 0));
+            }
+            // If k is too big for vector, reset it
+            else if (k >= queue.size()) {
+                k = 0;
+            }
+            return std::make_tuple(k, queue[k]);
+
+        }
+
+        // Continually prints the string and integer values currently present in the queue
+        // Only use the mutex for obtaining the values, don't need it for printing (slow)
+        void cont_print_d () {
+            int k = 0; // Index of element currently printing
+            std::pair<std::string, int> item_k;
+
+            while (queue.size() > 0) {
+            //for (int z = 0; z < 20; z++) { for testing
+                tie(k, item_k) = get_item(k);
+                if (k == -1) {
+                    // Break the loop if queue size drops to 0
+                    break;
+                }
+                else {
+                    std::cout<<"(d) - Item "<<k<<" contains: "<<item_k.first<<", "<<item_k.second<<std::endl;
+                    k++;
+                }
+            };
+        };
+
+
+        // Locks the queue and deletes the item at index 'to_delete'
+        void delete_item (int to_delete) {
+            // Lock the vector
+            std::lock_guard<std::mutex> guard(m);
+
+            // Erase the item at index 'to_delete'
+            queue.erase(queue.begin() + to_delete);
+        }
+
+        // Randomly delete one item every 0.3s
+        void delete_random_e () {
+            while (queue.size() > 0) {
+                // Sleep for 0.3s
+                std::this_thread::sleep_for(std::chrono::seconds(3 / 10));
+                
+                /*
+                //For testing
+                std::this_thread::sleep_for(std::chrono::seconds(6));
+                std::cout<<"Deleting"<<std::endl;
+                // This snippet is HIGHLY slowed down by the time taken for cout
+                */
+
+                // Randomly choose which item to delete
+                int to_delete = rand() % queue.size();
+
+                // Delete the item
+                delete_item(to_delete);
+            }
+        }
+
 };
 
 void test(Queue q) {
@@ -107,11 +188,35 @@ void test(Queue q) {
    std::cout<<p.queue.size()<<std::endl;
 }
 
-void main() {
+int main() {
 
     // Create the queue
     Queue q;
+
     // Populate the queue
     q.populate();
+
+    // Start the first background thread, part (c)
+    std::thread t1(&Queue::reverse_c, std::ref(q));
+
+    /*
+    // Start the second background thread, part (d)
+    std::thread t2(q.cont_print_d);
+
+    // Start the final background thread, part (e)
+    std::thread t3(q.delete_random_e);
+    */
+
+    // t3 will ALWAYS finish first (as (c) and (d) can't finish until (e) is)
+    //t3.join();
+
+    // t1 and t2 will finish randomly between them, just ensure they finish before the
+    // program ends
+    t1.join();
+    //t2.join();
+
+    std::cout<<"Finished successfully"<<std::endl;
+
+    return 0; // Completed successfully
 
 }
