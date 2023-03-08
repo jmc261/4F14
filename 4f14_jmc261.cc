@@ -12,8 +12,12 @@ struct Queue {
         std::vector<std::pair<std::string, int>> queue;
 
         // Set up mutex for processing
-        std::mutex m;
-        
+        std::mutex m_process;
+        // Set up mutex for printing (otherwise prints will be jumbled together)
+        std::mutex m_print;
+
+
+        //// CORE FUNCTIONS FOR PARTS (a) AND (b)
         // Adds a pair to the end of the queue
         void add (std::pair<std::string, int> to_add) {
             queue.push_back (to_add);
@@ -56,11 +60,13 @@ struct Queue {
 
             };
         };
-        
+
+
+        //// FUNCTIONS FOR PARTS (c), (d) and (e)
         // Function used in 'reverse' to swap two numbers
         void lock_and_swap (int index) {
             // Lock the queue while swap occurs
-            std::lock_guard<std::mutex> guard(m);
+            std::lock_guard<std::mutex> guard(m_process);
 
             int max_index = queue.size()/2; // int acts as a floor function
 
@@ -79,7 +85,9 @@ struct Queue {
                     sum += item.second;
                 };
                 // Print the sum
+                m_print.lock(); // Lock print mutex to prevent jumbling
                 std::cout<<"(c) - Sum of reversed integers: "<<sum<<std::endl;
+                m_print.unlock();
             }
         };
 
@@ -100,7 +108,7 @@ struct Queue {
         // Updates k if needed and returns the new pair
         std::tuple<int, std::pair<std::string, int>> get_item (int k) {
             // Lock the vector
-            std::lock_guard<std::mutex> guard(m);
+            std::lock_guard<std::mutex> guard(m_process);
 
             // If deletion occurs between while loop and get_item call, exit function
             if (queue.size() == 0) {
@@ -115,7 +123,7 @@ struct Queue {
         }
 
         // Continually prints the string and integer values currently present in the queue
-        // Only use the mutex for obtaining the values, don't need it for printing (slow)
+        // Only use the mutex m_process for obtaining the values, don't need it for printing (slow)
         void cont_print_d () {
             int k = 0; // Index of element currently printing
             std::pair<std::string, int> item_k;
@@ -128,7 +136,10 @@ struct Queue {
                     break;
                 }
                 else {
+                    // Print the item
+                    m_print.lock(); // Lock print mutex to prevent jumbling
                     std::cout<<"(d) - Item "<<k<<" contains: "<<item_k.first<<", "<<item_k.second<<std::endl;
+                    m_print.unlock();
                     k++;
                 }
             };
@@ -138,7 +149,7 @@ struct Queue {
         // Locks the queue and deletes the item at index 'to_delete'
         void delete_item (int to_delete) {
             // Lock the vector
-            std::lock_guard<std::mutex> guard(m);
+            std::lock_guard<std::mutex> guard(m_process);
 
             // Erase the item at index 'to_delete'
             queue.erase(queue.begin() + to_delete);
@@ -148,7 +159,7 @@ struct Queue {
         void delete_random_e () {
             while (queue.size() > 0) {
                 // Sleep for 0.3s
-                std::this_thread::sleep_for(std::chrono::seconds(3 / 10));
+                std::this_thread::sleep_for(std::chrono::milliseconds(300));
                 
                 /*
                 //For testing
@@ -162,6 +173,11 @@ struct Queue {
 
                 // Delete the item
                 delete_item(to_delete);
+
+                // Optional snippet - calls when deleting an item
+                m_print.lock(); // Lock print mutex to prevent jumbling
+                std::cout<<"(d) - Removing an item from queue"<<std::endl;
+                m_print.unlock();
             }
         }
 
@@ -213,8 +229,6 @@ int main() {
     // program ends
     t1.join();
     t2.join();
-
-    std::cout<<"Finished successfully"<<std::endl;
 
     return 0; // Completed successfully
 
