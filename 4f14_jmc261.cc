@@ -11,9 +11,9 @@ struct Queue {
         // The queue itself - a list of pairs
         std::vector<std::pair<std::string, int>> queue;
 
-        // Set up mutex
+        // Set up mutex for processing
         std::mutex m;
-
+        
         // Adds a pair to the end of the queue
         void add (std::pair<std::string, int> to_add) {
             queue.push_back (to_add);
@@ -199,21 +199,20 @@ int main() {
     // Start the first background thread, part (c)
     std::thread t1(&Queue::reverse_c, std::ref(q));
 
-    /*
     // Start the second background thread, part (d)
-    std::thread t2(q.cont_print_d);
+    std::thread t2(&Queue::cont_print_d, std::ref(q));
 
     // Start the final background thread, part (e)
-    std::thread t3(q.delete_random_e);
-    */
+    std::thread t3(&Queue::delete_random_e, std::ref(q));
 
     // t3 will ALWAYS finish first (as (c) and (d) can't finish until (e) is)
-    //t3.join();
+    t3.join();
+    
 
     // t1 and t2 will finish randomly between them, just ensure they finish before the
     // program ends
     t1.join();
-    //t2.join();
+    t2.join();
 
     std::cout<<"Finished successfully"<<std::endl;
 
