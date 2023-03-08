@@ -1,12 +1,12 @@
 #include <iostream>
 #include <thread>
+#include <list>
 
-void thread_init(){
-    std::cout<<"This statement is executed in the new thread\n";
-}
+int main() {
+    std::list<int> l;
+    l.push_back(5);
+    l.push_back(4);
+    l.push_back(3);
 
-int main(){
-    std::thread t(thread_init);
-    std::cout<<"This statement is exectuted in the main thread\n";
-    t.join();
-}
+    std::cout<<l[2]<<std::endl;
+};

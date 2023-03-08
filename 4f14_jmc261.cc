@@ -2,12 +2,16 @@
 #include <thread>
 #include <list>
 #include <utility> // Includes std::pair
+#include <mutex>
 
 
 struct Queue {
     public:
         // The queue itself - a list of pairs
         std::list<std::pair<std::string, int>> queue;
+
+        // Set up mutex
+        std::mutex m;
 
         // Adds a pair to the end of the queue
         void add (std::pair<std::string, int> to_add) {
@@ -49,6 +53,35 @@ struct Queue {
 
                 std::cout<<"temp_str: "<<temp_str<<", temp_int: "<<temp_int<<std::endl; //Just for checking
 
+            };
+        };
+
+        // Function used in 'reverse' to swap two numbers
+        void lock_and_swap (int index) {
+            // Lock the queue while swap occurs
+            std::lock_guard<std::mutex> guard(m);
+            int max_index = queue.size()/2; // int acts as a floor function
+            bool reversed = false; // Used to decide when to sum
+
+            // Need to recheck since list could have been altered since while in 'reverse'
+            if (index < max_index) {
+                // SWAP
+            }
+            else if (queue.size == 0) {
+                ; // Pass
+            }
+            else {
+                // SUM
+            }
+        };
+
+        // Reverse the list
+        void reverse () {
+            while (queue.size() > 0) {
+                int i = 0;
+                while (i < queue.size()/2 + 1) {
+                    lock_and_swap(i);
+                };
             };
         };
 };
