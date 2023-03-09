@@ -212,27 +212,6 @@ struct Queue {
 
 };
 
-void test(Queue q) {
-
-    /*
-    Queue q;
-    q.add(std::make_pair(std::string("abc"), 6));
-    q.add(std::make_pair(std::string("def"), 7));
-    std::pair<std::string, int> removed = q.remove();
-    
-    std::string a = q.queue.front().first;
-    int b = q.queue.front().second;
-
-    std::cout<<"Queue now contains: "<<a<<", "<<b<<std::endl;
-    std::cout<<"After removing: "<<removed.first<<", "<<removed.second<<std::endl;
-    */
-
-   Queue p;
-   p.populate();
-
-   std::cout<<p.queue.size()<<std::endl;
-}
-
 int main() {
 
     // Create the queue
