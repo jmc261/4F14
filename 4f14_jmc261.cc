@@ -65,7 +65,7 @@ struct Queue {
 
         //// FUNCTIONS FOR PARTS (c), (d) and (e)
         // Function used in 'reverse' to swap two numbers
-        std::pair<int, bool> lock_and_swap (int index) {
+        std::tuple<int, bool, int> lock_and_swap (int index) {
             // Lock the queue while swap occurs
             std::lock_guard<std::mutex> guard(m_process);
 
@@ -75,10 +75,10 @@ struct Queue {
             if (index < max_index) {
                 // Swap
                 std::iter_swap(queue.begin() + index, queue.begin() + (queue.size()-1) - index);
-                return std::make_pair(index+1, true);
+                return std::make_tuple(index+1, true, -1);
             }
             else if (queue.size() == 0) {
-                return std::make_pair(1, false); // Exit loop, so return 1 which is not greater than 1
+                return std::make_tuple(1, false, -1); // Exit loop, so return 1 which is not greater than 1
             }
             else {
                 // Sum if index >= max_index
@@ -86,11 +86,7 @@ struct Queue {
                 for (std::pair<std::string, int> item : queue) {
                     sum += item.second;
                 };
-                // Print the sum
-                m_print.lock(); // Lock print mutex to prevent jumbling
-                std::cout<<"(c) - Sum of reversed integers: "<<sum<<std::endl;
-                m_print.unlock();
-                return std::make_pair(0, true); // Reset counter and restart reverse
+                return std::make_tuple(0, true, sum); // Reset counter and restart reverse
             }
         };
 
@@ -100,12 +96,23 @@ struct Queue {
             //for (int j = 0; j<4; j++){ for testing
                 int i = 0;
                 bool active = true;
-                std::pair<int, bool> temp;
+                std::tuple<int, bool, int> temp;
+                int sum;
 
                 while (active) {
                     temp = lock_and_swap(i); // Store the pair output of fn
-                    i = temp.first;
-                    active = temp.second;
+
+                    // Unpack the tuple
+                    i = std::get<0>(temp);
+                    active = std::get<1>(temp);
+                    sum = std::get<2>(temp);
+
+                    if (sum != -1) {
+                        // Print the sum
+                        m_print.lock(); // Lock print mutex to prevent jumbling
+                        std::cout<<"(c) - Sum of reversed integers: "<<sum<<std::endl;
+                        m_print.unlock();
+                    }
                 };
             };
         };
