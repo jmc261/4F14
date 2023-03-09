@@ -121,44 +121,8 @@ struct Queue {
         };
 
 
-        // Updates k if needed and returns the new pair
-        std::pair<int, std::pair<std::string, int>> get_item (int k) {
-            // Lock the vector
-            std::lock_guard<std::mutex> guard(m_process);
-
-            // If deletion occurs between while loop and get_item call, exit function
-            if (queue.size() == 0) {
-                return std::make_pair(-1, std::make_pair(" ", 0));
-            }
-            // If k is too big for vector, reset it
-            else if (k >= queue.size()) {
-                k = 0;
-            }
-            return std::make_pair(k, queue[k]);
-        }
-
-        // Possibly faster version of get_item
-        std::pair<int, std::pair<std::string, int>> get_item_2 (int k) {
-            // Lock the vector
-            std::lock_guard<std::mutex> guard(m_process);
-
-            //// Even if queue.size() == 0, k cannot be less than queue.size()
-            //// Therefore rearrange if statement to be most common
-
-            // If deletion occurs between while loop and get_item call, exit function
-            if (k < queue.size()) {
-                return std::make_pair(k, queue[k]);
-            }
-            else if (queue.size() == 0) {
-                return std::make_pair(-1, std::make_pair(" ", 0));
-            }
-            else { // i.e k >= queue.size() != 0
-                return std::make_pair(0, queue[0]);
-            }
-        }
-
         // Possibly faster version of get_item, also throws error
-        std::pair<int, std::pair<std::string, int>> get_item_3 (int k) {
+        std::pair<int, std::pair<std::string, int>> get_item (int k) {
             // Lock the vector
             std::lock_guard<std::mutex> guard(m_process);
 
@@ -182,35 +146,8 @@ struct Queue {
 
         // Continually prints the string and integer values currently present in the queue
         // Only use the mutex m_process for obtaining the values, don't need it for printing (slow)
-        // This is FAR slower than (c) because accessing an element is very slow (see speedcheck.cc)
-        void cont_print_d () {
-            int k = 0; // Index of element currently printing
-            std::pair<std::string, int> item_k;
-            std::pair<int, std::pair<std::string, int>> temp2;
-
-            while (queue.size() > 0) {
-            //for (int z = 0; z < 20; z++) { for testing
-                temp2 = get_item_2(k);
-                k = temp2.first;
-                item_k = temp2.second;
-                if (k == -1) {
-                    // Break the loop if queue size drops to 0
-                    break;
-                }
-                else {
-                    // Print the item
-                    m_print.lock(); // Lock print mutex to prevent jumbling
-                    std::cout<<"(d) - Item "<<k<<" contains: "<<item_k.first<<", "<<item_k.second<<std::endl;
-                    m_print.unlock();
-                    k++;
-                }
-            };
-        };
-
-        // Continually prints the string and integer values currently present in the queue
-        // Only use the mutex m_process for obtaining the values, don't need it for printing (slow)
         // Try-catch loop avoids the need for if-else
-        void cont_print_d_2 () {
+        void cont_print_d () {
             int k = 0; // Index of element currently printing
             std::pair<std::string, int> item_k;
             std::pair<int, std::pair<std::string, int>> temp2;
@@ -221,7 +158,7 @@ struct Queue {
                 // Try-catch avoids if else statement
                 try {
                     // Get the item at k (assuming the list hasn't changed length)
-                    temp2 = get_item_3(k);
+                    temp2 = get_item(k);
                     k = temp2.first;
                     item_k = temp2.second;
                     
@@ -308,7 +245,7 @@ int main() {
     std::thread t1(&Queue::reverse_c, std::ref(q));
 
     // Start the second background thread, part (d)
-    std::thread t2(&Queue::cont_print_d_2, std::ref(q));
+    std::thread t2(&Queue::cont_print_d, std::ref(q));
 
     // Start the final background thread, part (e)
     std::thread t3(&Queue::delete_random_e, std::ref(q));
