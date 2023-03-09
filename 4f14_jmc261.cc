@@ -5,6 +5,7 @@
 #include <mutex>
 #include <tuple>
 #include <chrono>
+#include <exception>
 
 struct Queue {
     public:
@@ -64,7 +65,7 @@ struct Queue {
 
         //// FUNCTIONS FOR PARTS (c), (d) and (e)
         // Function used in 'reverse' to swap two numbers
-        void lock_and_swap (int index) {
+        std::pair<int, bool> lock_and_swap (int index) {
             // Lock the queue while swap occurs
             std::lock_guard<std::mutex> guard(m_process);
 
@@ -74,9 +75,10 @@ struct Queue {
             if (index < max_index) {
                 // Swap
                 std::iter_swap(queue.begin() + index, queue.begin() + (queue.size()-1) - index);
+                return std::make_pair(index+1, true);
             }
             else if (queue.size() == 0) {
-                ; // Pass
+                return std::make_pair(1, false); // Exit loop, so return 1 which is not greater than 1
             }
             else {
                 // Sum if index >= max_index
@@ -88,6 +90,7 @@ struct Queue {
                 m_print.lock(); // Lock print mutex to prevent jumbling
                 std::cout<<"(c) - Sum of reversed integers: "<<sum<<std::endl;
                 m_print.unlock();
+                return std::make_pair(0, true); // Reset counter and restart reverse
             }
         };
 
@@ -96,41 +99,90 @@ struct Queue {
             while (queue.size() > 0) {
             //for (int j = 0; j<4; j++){ for testing
                 int i = 0;
-                int len_q = queue.size()/2;
-                while (i < len_q + 1) {
-                    lock_and_swap(i);
-                    i++;
+                bool active = true;
+                std::pair<int, bool> temp;
+
+                while (active) {
+                    temp = lock_and_swap(i); // Store the pair output of fn
+                    i = temp.first;
+                    active = temp.second;
                 };
             };
         };
 
 
         // Updates k if needed and returns the new pair
-        std::tuple<int, std::pair<std::string, int>> get_item (int k) {
+        std::pair<int, std::pair<std::string, int>> get_item (int k) {
             // Lock the vector
             std::lock_guard<std::mutex> guard(m_process);
 
             // If deletion occurs between while loop and get_item call, exit function
             if (queue.size() == 0) {
-                return std::make_tuple(-1, std::make_pair(" ", 0));
+                return std::make_pair(-1, std::make_pair(" ", 0));
             }
             // If k is too big for vector, reset it
             else if (k >= queue.size()) {
                 k = 0;
             }
-            return std::make_tuple(k, queue[k]);
+            return std::make_pair(k, queue[k]);
+        }
+
+        // Possibly faster version of get_item
+        std::pair<int, std::pair<std::string, int>> get_item_2 (int k) {
+            // Lock the vector
+            std::lock_guard<std::mutex> guard(m_process);
+
+            //// Even if queue.size() == 0, k cannot be less than queue.size()
+            //// Therefore rearrange if statement to be most common
+
+            // If deletion occurs between while loop and get_item call, exit function
+            if (k < queue.size()) {
+                return std::make_pair(k, queue[k]);
+            }
+            else if (queue.size() == 0) {
+                return std::make_pair(-1, std::make_pair(" ", 0));
+            }
+            else { // i.e k >= queue.size() != 0
+                return std::make_pair(0, queue[0]);
+            }
+        }
+
+        // Possibly faster version of get_item, also throws error
+        std::pair<int, std::pair<std::string, int>> get_item_3 (int k) {
+            // Lock the vector
+            std::lock_guard<std::mutex> guard(m_process);
+
+            //// Even if queue.size() == 0, k cannot be less than queue.size()
+            //// Therefore rearrange if statement to be most common
+
+            // If deletion occurs between while loop and get_item call, exit function
+            if (k < queue.size()) {
+                return std::make_pair(k, queue[k]);
+            }
+            // Instructs thread to end
+            else if (queue.size() == 0) {
+                throw std::out_of_range( "Queue is empty" );
+            }
+            else { // i.e k >= queue.size() != 0
+                return std::make_pair(0, queue[0]);
+            }
+
 
         }
 
         // Continually prints the string and integer values currently present in the queue
         // Only use the mutex m_process for obtaining the values, don't need it for printing (slow)
+        // This is FAR slower than (c) because accessing an element is very slow (see speedcheck.cc)
         void cont_print_d () {
             int k = 0; // Index of element currently printing
             std::pair<std::string, int> item_k;
+            std::pair<int, std::pair<std::string, int>> temp2;
 
             while (queue.size() > 0) {
             //for (int z = 0; z < 20; z++) { for testing
-                tie(k, item_k) = get_item(k);
+                temp2 = get_item_2(k);
+                k = temp2.first;
+                item_k = temp2.second;
                 if (k == -1) {
                     // Break the loop if queue size drops to 0
                     break;
@@ -141,6 +193,36 @@ struct Queue {
                     std::cout<<"(d) - Item "<<k<<" contains: "<<item_k.first<<", "<<item_k.second<<std::endl;
                     m_print.unlock();
                     k++;
+                }
+            };
+        };
+
+        // Continually prints the string and integer values currently present in the queue
+        // Only use the mutex m_process for obtaining the values, don't need it for printing (slow)
+        // Try-catch loop avoids the need for if-else
+        void cont_print_d_2 () {
+            int k = 0; // Index of element currently printing
+            std::pair<std::string, int> item_k;
+            std::pair<int, std::pair<std::string, int>> temp2;
+
+            while (queue.size() > 0) {
+            //for (int z = 0; z < 20; z++) { for testing
+
+                // Try-catch avoids if else statement
+                try {
+                    // Get the item at k (assuming the list hasn't changed length)
+                    temp2 = get_item_3(k);
+                    k = temp2.first;
+                    item_k = temp2.second;
+                    
+                    // Print the item
+                    m_print.lock(); // Lock print mutex to prevent jumbling
+                    std::cout<<"(d) - Item "<<k<<" contains: "<<item_k.first<<", "<<item_k.second<<std::endl;
+                    m_print.unlock();
+                    k++;
+                }
+                catch (...) {
+                    break;
                 }
             };
         };
@@ -176,7 +258,7 @@ struct Queue {
 
                 // Optional snippet - calls when deleting an item
                 m_print.lock(); // Lock print mutex to prevent jumbling
-                std::cout<<"(d) - Removing an item from queue"<<std::endl;
+                std::cout<<"(e) - Removing an item from queue"<<std::endl;
                 m_print.unlock();
             }
         }
@@ -216,7 +298,7 @@ int main() {
     std::thread t1(&Queue::reverse_c, std::ref(q));
 
     // Start the second background thread, part (d)
-    std::thread t2(&Queue::cont_print_d, std::ref(q));
+    std::thread t2(&Queue::cont_print_d_2, std::ref(q));
 
     // Start the final background thread, part (e)
     std::thread t3(&Queue::delete_random_e, std::ref(q));

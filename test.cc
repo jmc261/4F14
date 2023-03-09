@@ -3,21 +3,30 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
+#include <tuple>
 
-void wait_and_print() {
+void never_stops () {
+    while (true) {
+        std::cout<<1<<std::endl;
+    };
+}
 
-    std::cout<<"Here"<<std::endl;
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
-    std::cout<<"Now here"<<std::endl;
-
-    }
+void stops () {
+    while (true) {
+        for (int i = 0; i<400; i++){
+            std::cout<<i<<std::endl;
+        };
+        std::this_thread::~thread;
+    };
+}
 
 int main() {
 
-    std::thread t(wait_and_print);
-    t.join();
+    std::thread t1(never_stops);
+    std::thread t2(stops);
+
+    t2.join();
+    t1.join();
 
     return 0;
 }
