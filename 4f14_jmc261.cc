@@ -4,7 +4,7 @@
 #include <utility> // Includes std::pair
 #include <mutex>
 #include <tuple>
-#include <chrono>
+#include <chrono> // For timing in part (e)
 #include <exception>
 
 struct Queue {
