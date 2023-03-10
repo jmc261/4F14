@@ -96,6 +96,7 @@ struct Queue {
         void reverse_c () {
             while (queue.size() > 0) {
             //for (int j = 0; j<4; j++){ for testing
+                // Define variables
                 int i = 0;
                 bool active = true;
                 std::pair<int, bool> temp;
@@ -169,6 +170,7 @@ struct Queue {
                     k++;
                 }
                 catch (...) {
+                    // get_item will throw an error if the queue is empty, so just catch it and break loop
                     break;
                 }
             };
@@ -189,13 +191,6 @@ struct Queue {
             while (queue.size() > 0) {
                 // Sleep for 0.3s
                 std::this_thread::sleep_for(std::chrono::milliseconds(300));
-                
-                /*
-                //For testing
-                std::this_thread::sleep_for(std::chrono::seconds(6));
-                std::cout<<"Deleting"<<std::endl;
-                // This snippet is HIGHLY slowed down by the time taken for cout
-                */
 
                 // Randomly choose which item to delete
                 int to_delete = rand() % queue.size();
